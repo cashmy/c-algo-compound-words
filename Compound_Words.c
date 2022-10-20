@@ -16,7 +16,11 @@ typedef struct word_node
 
 
 // * Hash Code Function
-unsigned long oaat(char *key, unsigned long len, unsigned long bits) {
+// Creates a hash code by summing the ASCII values of the characters in the word
+// and then modifying the code by doing bitwwise operations on the code.
+// Essentially creating a "blender" like action on the code to make it more
+// random-unique.
+unsigned long hash_code_gen(char *key, unsigned long len, unsigned long bits) {
     unsigned long hash, i;
     for (hash = 0, i = 0; i < len; ++i) {
         hash += key[i];
@@ -31,7 +35,7 @@ unsigned long oaat(char *key, unsigned long len, unsigned long bits) {
 
 
 // * Helper Function to read a line
-// Since we have now idea how long the line is,
+// Since we have NO idea how long the line is,
 //   we will use a standard size of 16 passed in as a parameter
 //   as most English words are under this size.
 // If the line is longer than the parameter size (16),
@@ -73,7 +77,7 @@ int in_hash_table(word_node *hash_table[], char *find, unsigned find_len)
 {
     unsigned word_code;
     word_node *wordptr;
-    word_code = oaat(find, find_len, NUM_BITS); // calculate hash code
+    word_code = hash_code_gen(find, find_len, NUM_BITS); // calculate hash code
     wordptr = hash_table[word_code];            // get pointer to the linked word list
     // Note: The hash table contains pointers to strings not the strings themselves.
     while (wordptr)
@@ -91,7 +95,7 @@ int in_hash_table(word_node *hash_table[], char *find, unsigned find_len)
 void find_compound_words(word_node *hash_table[], char *words[], int total_words) {
     int i, j;
     unsigned word_len;
-    // For each word generate all possible compound words (splits)
+    // For each word, generate all possible compound words (splits)
     for (i = 0; i < total_words; i++) {
         word_len = strlen(words[i]);
         // Split the word into two parts
@@ -113,22 +117,21 @@ int main (void) {
     char *word;
     word_node *wordptr;
     unsigned length, word_code;
-    word = read_line(WORD_SIZE);
-    // Add words to the hash table
-    while (*word) {
-        words[total] = word;                            
+    word = read_line(WORD_SIZE);                            // Read in the first word
+    while (*word) {                                 // Add words to the hash table
+        words[total] = word;                        // Add word to the words array    
         wordptr = malloc(sizeof(word_node));        // allocate memory for next node
-        if (wordptr == NULL) {
+        if (wordptr == NULL) {                      // check for memory allocation error
             printf("Memory error\n");
             exit(1);
         }
-        length = strlen(word);
-        word_code = oaat(word, length, NUM_BITS);   // calculate hash code
+        length = strlen(word);                      // get length of word
+        word_code = hash_code_gen(word, length, NUM_BITS);   // calculate hash code
         wordptr->word = &words[total];              // get pointer for the node
         wordptr->next = hash_table[word_code];      // get pointer for the next position in the linked list
         hash_table[word_code] = wordptr;            // add word to hash table
         word = read_line(WORD_SIZE);                // read next word
-        total++;                                    // increment char length
+        total++;                                    // increment total counter
     }
     find_compound_words(hash_table, words, total);    // find compound words
     return 0;
