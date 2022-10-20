@@ -116,19 +116,19 @@ int main (void) {
     word = read_line(WORD_SIZE);
     // Add words to the hash table
     while (*word) {
-        words[total] = word;
-        wordptr = malloc(sizeof(word_node));
+        words[total] = word;                            
+        wordptr = malloc(sizeof(word_node));        // allocate memory for next node
         if (wordptr == NULL) {
             printf("Memory error\n");
             exit(1);
         }
         length = strlen(word);
         word_code = oaat(word, length, NUM_BITS);   // calculate hash code
-        wordptr->word = &words[total];        // get pointer for the node
+        wordptr->word = &words[total];              // get pointer for the node
         wordptr->next = hash_table[word_code];      // get pointer for the next position in the linked list
         hash_table[word_code] = wordptr;            // add word to hash table
         word = read_line(WORD_SIZE);                // read next word
-        total++;                              // increment total words
+        total++;                                    // increment char length
     }
     find_compound_words(hash_table, words, total);    // find compound words
     return 0;
