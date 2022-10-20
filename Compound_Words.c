@@ -2,15 +2,33 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define hashsize(n) ((unsigned long)1 << (n))
+#define hashmask(n) (hashsize(n) - 1)
 #define NUM_BITS 17
 #define WORD_SIZE 16
 
 // Node Definition
 typedef struct word_node
 {
-    char *word;
+    char **word;
     struct word_node *next;
 } word_node;
+
+
+// * Hash Code Function
+unsigned long oaat(char *key, unsigned long len, unsigned long bits) {
+    unsigned long hash, i;
+    for (hash = 0, i = 0; i < len; ++i) {
+        hash += key[i];
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
+    }
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+    return hash & hashmask(bits);
+}
+
 
 // * Helper Function to read a line
 // Since we have now idea how long the line is,
@@ -26,7 +44,7 @@ char *read_line(int size)
     str = malloc(size); // Alloc memory for string (using size parameter)
     if (str == NULL)
     {
-        printf("Memory error\n");
+        fprintf(stderr, "Memory error\n");
         exit(1);
     }
     // Read characters from stdin
@@ -40,7 +58,7 @@ char *read_line(int size)
             str = realloc(str, size);
             if (str == NULL)
             {
-                printf(stderr, "realloc error\n");
+                fprintf(stderr, "Realloc error\n");
                 exit(1);
             }
         }
@@ -60,7 +78,7 @@ int in_hash_table(word_node *hash_table[], char *find, unsigned find_len)
     // Note: The hash table contains pointers to strings not the strings themselves.
     while (wordptr)
     {
-        if ((strlen(*(wordptr->word)) == find_len) && (strcmp(*(wordptr->word), find) == 0))
+        if ((strlen(*(wordptr->word)) == find_len) && (strncmp(*(wordptr->word), find, find_len) == 0))
         {
             return 1;
         }
@@ -79,7 +97,7 @@ void find_compound_words(word_node *hash_table[], char *words[], int total_words
         // Split the word into two parts
         for (j = 1; j < word_len; j++) {
             if (in_hash_table(hash_table, words[i], j) && 
-                in_hash_table(hash_table, words[i][j], word_len - j))
+                in_hash_table(hash_table, &words[i][j], word_len - j))
             {
                 printf("%s\n", words[i]);
                 break; // Only print the word once, not multiple times
@@ -89,22 +107,29 @@ void find_compound_words(word_node *hash_table[], char *words[], int total_words
 }
  
 int main (void) {
-    static char *words[ 1 << NUM_BITS] = {NULL};
-    static word_node *hash_table[ 1 << NUM_BITS] = {NULL};
-    int total_words = 0;
+    static char *words[ 1 << NUM_BITS] = {NULL};            // compute size of array
+    static word_node *hash_table[ 1 << NUM_BITS] = {NULL};  // compute size for hash table
+    int total = 0;
     char *word;
     word_node *wordptr;
     unsigned length, word_code;
     word = read_line(WORD_SIZE);
-    while (strcmp(word, "END") != 0) {
+    // Add words to the hash table
+    while (*word) {
+        words[total] = word;
+        wordptr = malloc(sizeof(word_node));
+        if (wordptr == NULL) {
+            printf("Memory error\n");
+            exit(1);
+        }
         length = strlen(word);
-        word_code = oaat(word, length, NUM_BITS);
-        wordptr->word = &words[total_words];
-        wordptr->next = hash_table[word_code];
-        hash_table[word_code] = wordptr;
-        word = read_line(WORD_SIZE);
-        total_words++;
+        word_code = oaat(word, length, NUM_BITS);   // calculate hash code
+        wordptr->word = &words[total];        // get pointer for the node
+        wordptr->next = hash_table[word_code];      // get pointer for the next position in the linked list
+        hash_table[word_code] = wordptr;            // add word to hash table
+        word = read_line(WORD_SIZE);                // read next word
+        total++;                              // increment total words
     }
-    find_compound_words(hash_table, words, total_words);
+    find_compound_words(hash_table, words, total);    // find compound words
     return 0;
 }
